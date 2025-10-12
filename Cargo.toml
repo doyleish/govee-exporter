@@ -1,0 +1,10 @@
+[package]
+name = "govee-exporter"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+btleplug = "0.11.8"
+futures = "0.3.31"
+prometheus_exporter = "0.8.5"
+tokio = {version="1.47.1", features=["full"]}
