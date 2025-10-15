@@ -362,6 +362,7 @@ dependencies = [
  "futures",
  "prometheus_exporter",
  "tokio",
+ "uuid",
 ]
 
 [[package]]
