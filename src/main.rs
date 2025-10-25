@@ -78,7 +78,8 @@ impl GVH5075Reading {
 }
 
 impl GVH5055Reading {
-    fn from_bytes(_: Vec<u8>) -> Result<Vec<Option<GVH5075Reading>>, DecodeGoveeDataError> {
+    fn from_bytes(v: &[u8]) -> Result<GVH5055Reading, DecodeGoveeDataError> {
+        println!("{:?}", v);
         // TODO implement according to notes
         Err(DecodeGoveeDataError)
     }
@@ -88,14 +89,16 @@ impl GoveeDeviceStatus {
     fn from_mfg_data(d: &HashMap<u16, Vec<u8>>) -> Option<GoveeDeviceStatus> {
         if !d.is_empty() {
             match d.keys().nth(0) {
-                Some(60552) => {
-                    if let Ok(reading) = GVH5075Reading::from_bytes(&d[&60552]) {
+                Some(60552) => if let Ok(reading) = GVH5075Reading::from_bytes(&d[&60552]) {
                         Some(GoveeDeviceStatus::GVH5075(reading))
                     } else {
                         None
                     }
-                }
-                Some(44566) => None,
+                Some(44566) => if let Ok(_) = GVH5055Reading::from_bytes(&d[&44566]) {
+                        None
+                    } else {
+                        None
+                    }
                 _ => None,
             }
         } else {
@@ -148,7 +151,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         match e {
             CentralEvent::DeviceDiscovered(id) => {
                 let p = central.peripheral(&id).await?;
-                println!("Device Discovered: {:?}", &p);
+                //println!("Device Discovered: {:?}", &p);
 
                 if let Some(p_props) = p.properties().await? {
                     let mfg_data: Vec<&u16> = p_props.manufacturer_data.keys().collect();
