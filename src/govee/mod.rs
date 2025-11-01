@@ -1,38 +1,22 @@
-use std::collections::HashMap;
-
-pub struct GoveeDataDecodeError {}
+#[derive(Debug)]
+pub enum GoveeError {
+    DataDecode,
+    UnsupportedDevice,
+    ManufacturerIdMismatch,
+}
 
 pub mod gvh5055;
 pub mod gvh5075;
 
-pub enum GoveeDeviceStatus {
-    GVH5075(gvh5075::DeviceStatus),
-    GVH5055(gvh5055::DeviceStatus),
+pub fn from_id_and_name(id: &u16, name: &str) -> Result<Box<dyn GoveeDevice>, GoveeError> {
+    match id {
+        &gvh5075::MANUFACTURER_ID => Ok(Box::new(gvh5075::GVH5075::from_name(name))),
+        _ => Err(GoveeError::UnsupportedDevice),
+    }
 }
 
-impl GoveeDeviceStatus {
-    pub fn from_mfg_data(d: &HashMap<u16, Vec<u8>>) -> Option<GoveeDeviceStatus> {
-        if !d.is_empty() {
-            match d.keys().nth(0) {
-                Some(&gvh5075::MANUFACTURER_ID) => {
-                    match gvh5075::DeviceStatus::from_mfg_data_bytes(&d[&gvh5075::MANUFACTURER_ID])
-                    {
-                        Ok(status) => Some(GoveeDeviceStatus::GVH5075(status)),
-                        _ => None,
-                    }
-                }
-                Some(&gvh5055::MANUFACTURER_ID) => {
-                    match gvh5055::DeviceStatus::from_mfg_data_bytes(&d[&gvh5055::MANUFACTURER_ID])
-                    {
-                        Ok(status) => Some(GoveeDeviceStatus::GVH5055(status)),
-                        _ => None,
-                    }
-                }
-                // TODO support more devices
-                _ => None,
-            }
-        } else {
-            None
-        }
-    }
+pub trait GoveeDevice {
+    fn get_name(&self) -> String;
+    fn get_model(&self) -> String;
+    fn update_metrics_from_mfg_bytes(&self, id: &u16, bytes: &[u8]) -> Option<GoveeError>;
 }
