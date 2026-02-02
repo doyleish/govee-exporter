@@ -16,6 +16,7 @@ pub fn from_id_and_name(id: &u16, name: &str) -> Result<Box<dyn GoveeDevice>, Go
 }
 
 pub trait GoveeDevice {
+    fn get_latest_stats(&self) -> String;
     fn get_name(&self) -> String;
     fn get_model(&self) -> String;
     fn update_metrics_from_mfg_bytes(&self, id: &u16, bytes: &[u8]) -> Option<GoveeError>;

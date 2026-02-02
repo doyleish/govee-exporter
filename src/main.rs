@@ -3,6 +3,7 @@ use btleplug::platform::{Manager, Peripheral, PeripheralId};
 use futures::stream::StreamExt;
 use prometheus_exporter;
 use std::collections::HashMap;
+use std::env;
 use std::error::Error;
 use std::str::FromStr;
 use tokio::spawn;
@@ -21,6 +22,12 @@ async fn prop_local_name(p: &Peripheral) -> Option<String> {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    let debug = env::args()
+        .into_iter()
+        .filter(|s| s.starts_with("--debug"))
+        .count()
+        > 0;
+
     spawn(metrics_server());
 
     let manager = Manager::new().await.unwrap();
@@ -41,6 +48,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     while let Some(e) = events.next().await {
         match e {
             CentralEvent::DeviceDiscovered(id) => {
+                if device_map.contains_key(&id) {
+                    continue;
+                }
                 let p = central.peripheral(&id).await?;
 
                 if let Some(p_props) = p.properties().await? {
@@ -67,13 +77,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
             } => {
                 if let Some(device) = device_map.get(&id) {
                     for (k, v) in manufacturer_data {
-                        match device.update_metrics_from_mfg_bytes(&k, &v) {
-                            Some(err) => {
-                                println!("Warning, error while attempting update: {:?}", err);
-                            }
-                            None => {
-                                println!("Updated device: {}", device.get_name());
-                                break;
+                        if debug {
+                            match device.update_metrics_from_mfg_bytes(&k, &v) {
+                                Some(err) => {
+                                    println!("Warning, error while attempting update: {:?}", err);
+                                }
+                                None => {
+                                    println!("Updated device: {}", device.get_name());
+                                    println!("{}", device.get_latest_stats());
+                                }
                             }
                         }
                     }

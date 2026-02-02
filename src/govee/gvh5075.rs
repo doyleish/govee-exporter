@@ -33,7 +33,7 @@ impl GVH5075 {
                 "Temperature in Celsius",
                 labels
             ))
-            .expect(name),
+            .expect(err_msg),
             humidity_percentage: register_gauge!(opts!(
                 "govee_humidity_percentage",
                 "Humidity percentage",
@@ -62,6 +62,15 @@ impl GoveeDevice for GVH5075 {
     }
     fn get_model(&self) -> String {
         String::from(MODEL_NAME)
+    }
+    fn get_latest_stats(&self) -> String {
+        let mut ret = String::new();
+        ret.push_str(format!("name: {}\n", self.name).as_str());
+        ret.push_str(format!("temperature (c*): {}\n", self.temperature_c.get()).as_str());
+        ret.push_str(format!("humidity (%): {}\n", self.humidity_percentage.get()).as_str());
+        ret.push_str(format!("battery (%): {}\n", self.battery_percentage.get()).as_str());
+        ret.push_str(format!("btle advertisements (#): {}", self.advertisements.get()).as_str());
+        ret
     }
     fn update_metrics_from_mfg_bytes(&self, id: &u16, v: &[u8]) -> Option<GoveeError> {
         if id != &MANUFACTURER_ID {
