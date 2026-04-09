@@ -1,7 +1,6 @@
 use btleplug::api::{Central, CentralEvent, Manager as _, Peripheral as _, ScanFilter};
 use btleplug::platform::{Manager, Peripheral, PeripheralId};
 use futures::stream::StreamExt;
-use prometheus_exporter;
 use std::collections::HashMap;
 use std::env;
 use std::error::Error;
@@ -22,11 +21,7 @@ async fn prop_local_name(p: &Peripheral) -> Option<String> {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let debug = env::args()
-        .into_iter()
-        .filter(|s| s.starts_with("--debug"))
-        .count()
-        > 0;
+    let debug = env::args().filter(|s| s.starts_with("--debug")).count() > 0;
 
     spawn(metrics_server());
 
@@ -77,20 +72,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
             } => {
                 if let Some(device) = device_map.get(&id) {
                     for (k, v) in manufacturer_data {
+                        let update_opt = device.update_metrics_from_mfg_bytes(&k, &v);
                         if debug {
-                            match device.update_metrics_from_mfg_bytes(&k, &v) {
-                                Some(err) => {
-                                    println!("Warning, error while attempting update: {:?}", err);
-                                }
-                                None => {
-                                    println!("Updated device: {}", device.get_name());
-                                    println!("{}", device.get_latest_stats());
-                                }
+                            if let Some(err) = update_opt {
+                                println!("Warning, error while attempting update: {:?}", err);
+                            } else {
+                                println!("Updated device: {}", device.get_name());
+                                println!("{}", device.get_latest_stats());
                             }
                         }
                     }
                 };
-                ()
             }
             _ => {}
         }
